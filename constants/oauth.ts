@@ -8,12 +8,19 @@ const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
 const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
-  portal: process.env.EXPO_PUBLIC_OAUTH_PORTAL_URL ?? "",
-  server: process.env.EXPO_PUBLIC_OAUTH_SERVER_URL ?? "",
-  appId: process.env.EXPO_PUBLIC_APP_ID ?? "",
+  // portal と server の両方に Render の URL を入れます
+  portal: "https://exchange-diary-app.onrender.com",
+  server: "https://exchange-diary-app.onrender.com",
+  
+  // appId は何でも構いませんが、空だとエラーになる場合があるので適当な名前を入れます
+  appId: "exchange-diary-app", 
+  
   ownerId: process.env.EXPO_PUBLIC_OWNER_OPEN_ID ?? "",
   ownerName: process.env.EXPO_PUBLIC_OWNER_NAME ?? "",
-  apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? "",
+  
+  // ここも Render の URL に書き換えます
+  apiBaseUrl: "https://exchange-diary-app.onrender.com",
+  
   deepLinkScheme: schemeFromBundleId,
 };
 

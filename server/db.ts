@@ -141,3 +141,9 @@ export async function updateDiaryEntry(entryId: number, data: Partial<InsertDiar
 export async function deleteDiaryEntry(entryId: number) {
   await db.delete(diaryEntries).where(eq(diaryEntries.id, entryId));
 }
+
+// server/db.ts または routes のあるファイルに追加
+app.get("/app-auth", (req, res) => {
+  // 簡易的なログイン画面を返す、あるいは即座にリダイレクトさせる
+  res.send("<h1>Login Page</h1><p>現在、簡易モードで動作中です。</p>");
+});
