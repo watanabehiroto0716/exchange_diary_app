@@ -26,11 +26,39 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+// ログイン画面のルートを登録する関数
+function registerAuthPages(app: express.Express) {
+  app.get("/app-auth", (req, res) => {
+    const { redirectUri, state } = req.query;
+
+    res.send(`
+      <html>
+        <head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+        <body style="font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f0f2f5;">
+          <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;">
+            <h2 style="color: #1c1e21;">交換日記アプリ</h2>
+            <p style="color: #606770;">テスト用ログインとして実行します</p>
+            <button onclick="login()" style="padding: 12px 24px; font-size: 16px; background: #007AFF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+              ログインしてアプリに戻る
+            </button>
+          </div>
+          <script>
+            function login() {
+              // サーバー内のモバイル用エンドポイントへリダイレクト
+              const callbackUrl = "/api/oauth/mobile?code=dummy_code&state=${state}";
+              window.location.href = callbackUrl;
+            }
+          </script>
+        </body>
+      </html>
+    `);
+  });
+}
+
 async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin) {
@@ -43,7 +71,6 @@ async function startServer() {
     );
     res.header("Access-Control-Allow-Credentials", "true");
 
-    // Handle preflight requests
     if (req.method === "OPTIONS") {
       res.sendStatus(200);
       return;
@@ -54,7 +81,9 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // ルートの登録
   registerOAuthRoutes(app);
+  registerAuthPages(app); // ★ここでログインページを登録
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
@@ -71,42 +100,9 @@ async function startServer() {
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
 
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-  }
-
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
   });
 }
 
 startServer().catch(console.error);
-
-// server側のコードに追記
-export function registerAuthPages(app: any) {
-  app.get("/app-auth", (req: any, res: any) => {
-    const { appId, redirectUri, state } = req.query;
-
-    // 簡易的なログイン画面（HTML）を直接返します
-    res.send(`
-      <html>
-        <body style="font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-          <h2>交換日記アプリにログイン</h2>
-          <p>テスト用ログインとして実行します</p>
-          <button onclick="login()" style="padding: 15px 30px; font-size: 18px; background: #007AFF; color: white; border: none; border-radius: 8px; cursor: pointer;">
-            ログインしてアプリに戻る
-          </button>
-
-          <script>
-            function login() {
-              // 本来はここでGoogle等の認証をしますが、
-              // 今回は直接コールバックURLに「ダミーのcode」を付けて戻します
-              const callbackUrl = "${redirectUri}?code=dummy_code&state=${state}";
-              window.location.href = callbackUrl;
-            }
-          </script>
-        </body>
-      </html>
-    `);
-  });
-}
