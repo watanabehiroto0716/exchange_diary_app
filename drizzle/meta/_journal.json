@@ -1,26 +1,12 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1763372440610,
-      "tag": "0000_elite_eternals",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1765980674090,
-      "tag": "0001_lowly_shotgun",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1765982080184,
-      "tag": "0002_adorable_fat_cobra",
+      "version": "6",
+      "when": 1765992090525,
+      "tag": "0000_nebulous_young_avengers",
       "breakpoints": true
     }
   ]
