@@ -3,9 +3,11 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "../oauth"; 
-import { appRouter } from "../../routers";     
-import { createContext } from "../context";     
+
+// すべて同じフォルダ内にあるためパスを修正
+import { registerOAuthRoutes } from "./oauth"; 
+import { appRouter } from "../routers";     
+import { createContext } from "./context";     
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -97,7 +99,7 @@ async function startServer() {
   const port = await findAvailablePort(preferredPort);
 
   server.listen(port, () => {
-    console.log(`[api] server listening on port ${port}`);
+    console.log("[api] server listening on port " + port);
   });
 }
 
