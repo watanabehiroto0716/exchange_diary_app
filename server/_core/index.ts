@@ -3,11 +3,55 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { z } from "zod"; // 追加
+import { desc, eq } from "drizzle-orm"; // 追加
 
-// すべて同じフォルダ内にあるためパスを修正
 import { registerOAuthRoutes } from "./oauth"; 
-import { appRouter } from "../routers";     
 import { createContext } from "./context";     
+import { router, publicProcedure } from "./trpc"; // trpcの定義をインポート
+import { db } from "./index"; // 自分自身のdb定義（またはdb.tsから）
+import { diaryEntries } from "../../db/schema"; // スキーマから日記テーブルをインポート
+
+// --- [tRPC Router の定義] ---
+// ここで日記の投稿・取得機能を定義します
+const diaryRouter = router({
+  // 日記一覧を取得する
+  getEntries: publicProcedure
+    .input(z.object({ groupId: z.number() }))
+    .query(async ({ input }) => {
+      return await db
+        .select()
+        .from(diaryEntries)
+        .where(eq(diaryEntries.groupId, input.groupId))
+        .orderBy(desc(diaryEntries.id)); 
+    }),
+
+  // 日記を投稿する
+  postEntry: publicProcedure
+    .input(z.object({
+      groupId: z.number(),
+      userId: z.number(),
+      content: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const result = await db.insert(diaryEntries).values({
+        groupId: input.groupId,
+        userId: input.userId,
+        content: input.content,
+      }).returning();
+      return result[0];
+    }),
+});
+
+// メインのルーターに統合
+export const appRouter = router({
+  diary: diaryRouter,
+  // 他に既存のルートがあればここに追加
+});
+
+export type AppRouter = typeof appRouter;
+
+// --- [サーバー起動処理 (以前のまま)] ---
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -30,19 +74,13 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 function registerAuthPages(app: express.Express) {
   app.get("/app-auth", (req, res) => {
-    const { redirectUri, state } = req.query;
-
+    const { state } = req.query;
     res.send(`
       <html>
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>Login</title>
-        </head>
-        <body style="font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f0f2f5;">
-          <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; max-width: 300px;">
-            <h2 style="color: #1c1e21;">交換日記アプリ</h2>
-            <p style="color: #606770;">テスト用アカウントでログインします</p>
-            <button onclick="login()" style="padding: 12px 24px; font-size: 16px; background: #007AFF; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%;">
+        <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f0f2f5;">
+          <div style="background: white; padding: 30px; border-radius: 15px; text-align: center;">
+            <h2>交換日記アプリ</h2>
+            <button onclick="login()" style="padding: 12px 24px; background: #007AFF; color: white; border: none; border-radius: 8px; font-weight: bold;">
               ログインしてアプリに戻る
             </button>
           </div>
@@ -64,16 +102,11 @@ async function startServer() {
 
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin) {
-      res.header("Access-Control-Allow-Origin", origin);
-    }
+    if (origin) res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
     res.header("Access-Control-Allow-Credentials", "true");
-    if (req.method === "OPTIONS") {
-      res.sendStatus(200);
-      return;
-    }
+    if (req.method === "OPTIONS") return res.sendStatus(200);
     next();
   });
 
@@ -83,9 +116,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerAuthPages(app); 
 
-  app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, timestamp: Date.now() });
-  });
+  app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
   app.use(
     "/api/trpc",
@@ -95,9 +126,7 @@ async function startServer() {
     }),
   );
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
-
+  const port = await findAvailablePort(parseInt(process.env.PORT || "3000"));
   server.listen(port, () => {
     console.log("[api] server listening on port " + port);
   });
