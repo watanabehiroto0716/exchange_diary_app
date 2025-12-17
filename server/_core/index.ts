@@ -3,11 +3,10 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "../oauth"; // パスが ../ になる点に注意
-import { appRouter } from "../../routers";     // パスが ../../ になる点に注意
-import { createContext } from "../context";     // パスが ../ になる点に注意
+import { registerOAuthRoutes } from "../oauth"; 
+import { appRouter } from "../../routers";     
+import { createContext } from "../context";     
 
-// ポートチェック関数
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net.createServer();
@@ -27,7 +26,6 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-// ★ ログインページを表示するための関数
 function registerAuthPages(app: express.Express) {
   app.get("/app-auth", (req, res) => {
     const { redirectUri, state } = req.query;
@@ -48,8 +46,7 @@ function registerAuthPages(app: express.Express) {
           </div>
           <script>
             function login() {
-              // stateを維持したままモバイル用コールバックへ飛ばす
-              const callbackUrl = "/api/oauth/mobile?code=dummy_code&state=\${encodeURIComponent('${state}')}";
+              const callbackUrl = "/api/oauth/mobile?code=dummy_code&state=${state}";
               window.location.href = callbackUrl;
             }
           </script>
@@ -63,7 +60,6 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // CORS設定
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin) {
@@ -82,9 +78,8 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // ★ 重要：app定義の後にルートを登録する
   registerOAuthRoutes(app);
-  registerAuthPages(app); // ログインページを登録
+  registerAuthPages(app); 
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
@@ -102,7 +97,7 @@ async function startServer() {
   const port = await findAvailablePort(preferredPort);
 
   server.listen(port, () => {
-    console.log(\`[api] server listening on port \${port}\`);
+    console.log(`[api] server listening on port ${port}`);
   });
 }
 
