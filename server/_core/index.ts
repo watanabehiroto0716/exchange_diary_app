@@ -3,14 +3,18 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { z } from "zod"; // 追加
-import { desc, eq } from "drizzle-orm"; // 追加
+import { z } from "zod";
+import { desc, eq } from "drizzle-orm";
 
 import { registerOAuthRoutes } from "./oauth"; 
 import { createContext } from "./context";     
-import { router, publicProcedure } from "./trpc"; // trpcの定義をインポート
-import { db } from "./index"; // 自分自身のdb定義（またはdb.tsから）
-import { diaryEntries } from "../../db/schema"; // スキーマから日記テーブルをインポート
+import { router, publicProcedure } from "./trpc"; 
+
+// ここを修正：db.ts から db と diaryEntries をインポート
+import { db } from "../db"; 
+import { diaryEntries } from "../../db/schema"; 
+
+// --- 以下、diaryRouter の定義へと続く ---
 
 // --- [tRPC Router の定義] ---
 // ここで日記の投稿・取得機能を定義します
