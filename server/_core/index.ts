@@ -120,6 +120,19 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerAuthPages(app); 
 
+  // ルートエンドポイント
+  app.get("/", (_req, res) => {
+    res.json({ 
+      message: "Exchange Diary App API",
+      version: "1.0.0",
+      endpoints: {
+        health: "/api/health",
+        oauth: "/api/oauth/callback",
+        trpc: "/api/trpc"
+      }
+    });
+  });
+
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
   app.use(
