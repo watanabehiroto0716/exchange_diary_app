@@ -128,6 +128,34 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
+  // Mobile OAuth token exchange endpoint (gRPC style)
+  // Used by mobile apps to exchange authorization code for session token
+  app.post("/webdev.v1.WebDevAuthPublicService/ExchangeToken", async (req: Request, res: Response) => {
+    try {
+      const { code, state } = req.body;
+      
+      if (!code || !state) {
+        return res.status(400).json({ error: "code and state are required" });
+      }
+      
+      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+      const user = await syncUser(userInfo);
+      const sessionToken = await sdk.createSessionToken(userInfo.openId!, {
+        name: userInfo.name || "",
+        expiresInMs: ONE_YEAR_MS,
+      });
+      
+      res.json({
+        app_session_id: sessionToken,
+        user: buildUserResponse(user),
+      });
+    } catch (error) {
+      console.error("[OAuth] Mobile exchange failed", error);
+      res.status(400).json({ error: "OAuth mobile exchange failed" });
+    }
+  });
+
   app.post("/api/auth/logout", (req: Request, res: Response) => {
     const cookieOptions = getSessionCookieOptions(req);
     res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
